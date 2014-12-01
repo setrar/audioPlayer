@@ -10,19 +10,27 @@ import javax.sound.sampled.{SourceDataLine,DataLine}
 class AudioFilePlayer {
 
   def play(fileName: String) {
-     val in = AudioSystem.getAudioInputStream(new File(fileName));
-     val ch = in.getFormat().getChannels();
-     val rate = in.getFormat().getSampleRate();
-     val outFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, rate, 16, ch, ch * 2, rate, false);
-     val line = AudioSystem.getLine(new DataLine.Info(classOf[SourceDataLine], outFormat)).asInstanceOf[SourceDataLine];
-     val stream = AudioSystem.getAudioInputStream(outFormat, in);
+     val fileAudioStream = AudioSystem.getAudioInputStream(new File(fileName))
+     val channels = fileAudioStream.getFormat().getChannels()
+     val sampleRate = fileAudioStream.getFormat().getSampleRate()
+     val sampleSizeInBits = 16
+     val frameSize = channels * 2
+     val frameRate = sampleRate
+     val bigEndian = false
+     val audioOutputFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, sampleRate, sampleSizeInBits, channels, frameSize, frameRate, bigEndian);
+     val dataLineInfo = new DataLine.Info(classOf[SourceDataLine], audioOutputFormat)
+     val audioStream = AudioSystem.getAudioInputStream(audioOutputFormat, fileAudioStream);
+     val audioLine: Option[SourceDataLine] = Some(AudioSystem.getLine(dataLineInfo).asInstanceOf[SourceDataLine])
  
-     if (line != null) {
-	     line.open(outFormat)
+     audioLine match {
+       case Some(line) => {
+         line.open(audioOutputFormat)
 	     line.start()
-	     dataStream(stream,line)
+	     dataStream(audioStream,line)
 	     line.drain()
 	     line.stop()
+       }
+       case None => ???
      }
   }
   
@@ -43,7 +51,7 @@ object AudioFilePlayer {
         val sep = File.separator
 
         val player = new AudioFilePlayer ();
-        player.play("src" + sep + "test" + sep + "resources" + sep + "WhatIsThisThingCalledLove.mp3")
+//        player.play("src" + sep + "test" + sep + "resources" + sep + "WhatIsThisThingCalledLove.mp3")
         player.play("src" + sep + "test" + sep + "resources" + sep + "500MilesHigh.ogg")
   }
 }
